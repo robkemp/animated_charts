@@ -1,0 +1,71 @@
+---
+title: "Animated Charts"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(codemog)
+library(ggplot2)
+library(dplyr)
+library(grid)
+library(gganimate)
+
+
+load("county_forecast.rdata")
+
+
+library(knitr)
+
+# I want the README to have visible GIFs on GitHub, as
+# GitHub cannot show .mp4s or other animation formats.
+# I therefore hacked together a GIF animation hook for knitr.
+
+library(animation)
+ani.options(autobrowse = FALSE)
+
+opts_knit$set(animation.fun = function(x, options, format = "gif") {
+  x = c(knitr:::sans_ext(x), knitr:::file_ext(x))
+  fig.num = options$fig.num
+  format = sub("^[.]", "", format)
+  fig.fname = paste0(sub(paste0(fig.num, "$"), "*", x[1]), 
+                     ".", x[2])
+  mov.fname = paste0(sub(paste0(fig.num, "$"), "", x[1]), ".", 
+                     format)
+
+  # order correctly
+  figs <- Sys.glob(fig.fname)
+  figs <- figs[order(as.numeric(stringr::str_match(figs, paste0("(\\d+)\\.", x[2]))[, 2]))]
+
+  animation::im.convert(figs, output = mov.fname)
+  
+  sprintf("![%s](%s)", options$label, paste0(opts_knit$get("base.url"), mov.fname))
+})
+
+opts_chunk$set(cache = TRUE, message = FALSE, warning = FALSE, fig.show = "animate")
+
+```
+
+# Age Animation of SDO Forecasts for Denver Metro Area
+
+NOTE: The code for the document is here: https://github.com/robkemp/animated_charts/
+
+```{r, age_animation, fig.show='animate'}
+
+
+denver_7county=c(1,5,13,14,31,35,59)
+p=county_forecast%>%
+  filter(countyfips%in%denver_7county, age<90)%>%
+  ggplot(aes(x=age, y=totalPopulation))+
+  geom_point(aes(frame=year), color=rgb(31,74,126,max=255))+
+  facet_wrap(~county, scales = "free")+
+  theme_codemog()+
+  labs(x="Age", y="Total Population", title="Population Year: ")
+
+
+ani.options(interval = .1)
+
+gg_animate(p)
+
+```
+
